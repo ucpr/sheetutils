@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Unmarshaler is an interface that unmarshals the data into a slice of the given type.
@@ -77,26 +78,34 @@ func Unmarshal[T any](data [][]any) ([]T, error) {
 // TODO: Add support for more types.
 func setFieldValue(field reflect.Value, value any, fieldType reflect.Type) {
 	if field.IsValid() && field.CanSet() {
+		v, ok := value.(string)
+		if !ok {
+			return
+		}
 		switch fieldType.Kind() {
 		case reflect.String:
-			strValue, ok := value.(string)
-			if ok {
-				field.SetString(strValue)
+			field.SetString(v)
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			n, err := strconv.ParseInt(v, 10, 64)
+			if err != nil || field.OverflowInt(n) {
+				return
 			}
-		case reflect.Int:
-			intValue, ok := value.(int)
-			if ok {
-				field.SetInt(int64(intValue))
+			field.SetInt(n)
+		case reflect.Float32, reflect.Float64:
+			n, err := strconv.ParseFloat(v, 64)
+			if err != nil || field.OverflowFloat(n) {
+				return
 			}
-		case reflect.Float64:
-			floatValue, ok := value.(float64)
-			if ok {
-				field.SetFloat(floatValue)
-			}
+			field.SetFloat(n)
 		case reflect.Bool:
-			boolValue, ok := value.(bool)
-			if ok {
-				field.SetBool(boolValue)
+			field.SetBool(v == "TRUE")
+		case reflect.Struct:
+			// TODO: Add support for more types.
+			if fieldType == reflect.TypeOf(time.Time{}) {
+				t, err := time.Parse(time.RFC3339, v) // TODO: Add support for more time formats.
+				if err == nil {
+					field.Set(reflect.ValueOf(t))
+				}
 			}
 		}
 	}
