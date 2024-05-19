@@ -23,7 +23,7 @@ func NewUnmarshaler[T any]() *UnmarshalerImpl[T] {
 
 // AddFieldMapping adds a mapping between a column index and a field in the struct.
 func (m *UnmarshalerImpl[T]) AddFieldMapping(field string, index int, setter func(*T, any)) {
-	m.mapper.AddFieldMapping(field, index, setter)
+	m.mapper.AddFieldSetter(field, index, setter)
 }
 
 // Unmarshal the data based on the mapping added by AddFieldMapping method.
@@ -32,7 +32,7 @@ func (m *UnmarshalerImpl[T]) Unmarshal(data [][]any) ([]T, error) {
 
 	for _, row := range data {
 		var instance T
-		for idx, setter := range m.mapper.Columns {
+		for idx, setter := range m.mapper.Setters {
 			if idx < len(row) {
 				setter(&instance, row[idx])
 			}
@@ -63,7 +63,7 @@ func Unmarshal[T any](data [][]any) ([]T, error) {
 			}
 
 			fieldName := field.Name
-			um.mapper.AddFieldMapping(fieldName, index, func(ptr *T, value any) {
+			um.mapper.AddFieldSetter(fieldName, index, func(ptr *T, value any) {
 				v := reflect.ValueOf(ptr).Elem().FieldByName(fieldName)
 				setFieldValue(v, value, field.Type)
 			})
