@@ -1,4 +1,4 @@
-package sheet
+package sheetutils
 
 // Mapper is a struct that maps the column index to a field in the struct.
 type Mapper[T any] struct {
